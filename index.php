@@ -22,7 +22,9 @@ $valid_pages = [
     'games' => PROJECT_ROOT . 'pages/games/games.php',
     'play' => PROJECT_ROOT . 'pages/games/play.php',
     'leaderboard' => PROJECT_ROOT . 'pages/leaderboard.php',
-    'profile' => PROJECT_ROOT . 'pages/user/profile.php'
+    'profile' => PROJECT_ROOT . 'pages/user/profile.php',
+    'forgot-password' => PROJECT_ROOT . 'pages/auth/password-reset.php',
+    'reset-password' => PROJECT_ROOT . 'pages/auth/password-reset.php'
 ];
 
 // Get the requested page or default to home

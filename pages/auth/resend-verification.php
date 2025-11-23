@@ -1,5 +1,5 @@
 <?php
-require_once '../../config/database.php';
+require_once '../../includes/config/database.php';
 require_once '../../includes/auth_functions.php';
 
 $page_title = 'Resend Verification - GameVerse';

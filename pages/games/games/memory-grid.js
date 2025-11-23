@@ -311,7 +311,7 @@ class MemoryGrid {
     
     // flipCard method is already defined above, remove this duplicate
     
-    gameWon() {
+    async gameWon() {
         this.gameActive = false;
         clearInterval(this.timer);
         
@@ -320,13 +320,53 @@ class MemoryGrid {
         this.finalTimeEl.textContent = this.secondsElapsed;
         this.gameOverEl.style.display = 'block';
         
-        // Calculate XP based on performance (more points for fewer moves and less time)
+        // Calculate score based on performance (more points for fewer moves and less time)
         const timeScore = Math.max(10, 100 - Math.floor(this.secondsElapsed / 2));
         const movesScore = Math.max(10, 100 - this.moves);
-        const xp = Math.min(100, Math.floor((timeScore + movesScore) / 3));
+        const totalScore = Math.floor((timeScore + movesScore) * 0.5);
         
-        // Save score
-        saveScore(this.matchesFound * 10, xp);
+        // Save score to server
+        try {
+            const response = await fetch('/GameVerse/Hackathon-projekt/pages/games/save_score.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    game: 'memory-grid',
+                    score: totalScore
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show XP earned notification
+                const xpNotification = document.createElement('div');
+                xpNotification.className = 'alert alert-success mt-3';
+                xpNotification.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="me-2">🎉</div>
+                        <div>
+                            <strong>+${result.xp_earned} XP Earned!</strong>
+                            <div class="small">Level ${result.level} (${result.new_xp % 100}/100 XP to next level)</div>
+                        </div>
+                    </div>
+                `;
+                this.gameOverEl.appendChild(xpNotification);
+                
+                // Update high score display if needed
+                if (result.new_high_score) {
+                    const highScoreNote = document.createElement('div');
+                    highScoreNote.className = 'alert alert-info mt-2';
+                    highScoreNote.innerHTML = '🏆 <strong>New High Score!</strong>';
+                    this.gameOverEl.insertBefore(highScoreNote, xpNotification);
+                }
+            }
+        } catch (error) {
+            console.error('Error saving score:', error);
+            // Still show the game over screen even if score save fails
+        }
     }
     
     updateUI() {

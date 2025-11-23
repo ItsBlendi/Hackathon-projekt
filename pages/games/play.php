@@ -114,6 +114,10 @@ $games = [
         'title' => 'Dodge Squares',
         'tagline' => 'Avoid the red tiles and survive as long as possible.',
     ],
+    'flappy-bird' => [
+        'title' => 'Flappy Bird',
+        'tagline' => 'Navigate the bird through the pipes!',
+    ],
 ];
 
 $game = $games[$gameSlug] ?? null;

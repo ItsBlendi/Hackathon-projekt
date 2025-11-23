@@ -222,7 +222,7 @@ class NumberNinja {
         }
     }
 
-    gameOver() {
+    async gameOver() {
         this.gameActive = false;
         clearInterval(this.timer);
 
@@ -231,12 +231,47 @@ class NumberNinja {
         this.gameOverEl.style.display = 'block';
         this.gameArea.style.display = 'none';
 
-        // Calculate XP based on score (1 XP per 5 points, max 100)
-        const xp = Math.min(100, Math.floor(this.score / 5));
+        // Save score to server
+        try {
+            const response = await fetch('/GameVerse/Hackathon-projekt/pages/games/save_score.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    game: 'number-ninja',
+                    score: this.score
+                })
+            });
 
-        // Save score
-        if (typeof saveScore === 'function') {
-            saveScore(this.score, xp);
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show XP earned notification
+                const xpNotification = document.createElement('div');
+                xpNotification.className = 'alert alert-success mt-3';
+                xpNotification.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="me-2">🎉</div>
+                        <div>
+                            <strong>+${result.xp_earned} XP Earned!</strong>
+                            <div class="small">Level ${result.level} (${result.new_xp % 100}/100 XP to next level)</div>
+                        </div>
+                    </div>
+                `;
+                this.gameOverEl.appendChild(xpNotification);
+                
+                // Update high score display if needed
+                if (result.new_high_score) {
+                    const highScoreNote = document.createElement('div');
+                    highScoreNote.className = 'alert alert-info mt-2';
+                    highScoreNote.innerHTML = '🏆 <strong>New High Score!</strong>';
+                    this.gameOverEl.insertBefore(highScoreNote, xpNotification);
+                }
+            }
+        } catch (error) {
+            console.error('Error saving score:', error);
+            // Still show the game over screen even if score save fails
         }
     }
 }

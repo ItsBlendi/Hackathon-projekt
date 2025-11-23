@@ -246,7 +246,7 @@ class DodgeSquares {
         });
     }
 
-    gameOver() {
+    async gameOver() {
         this.gameActive = false;
         cancelAnimationFrame(this.animationId);
 
@@ -255,12 +255,52 @@ class DodgeSquares {
         this.gameOverEl.style.display = 'block';
         document.querySelector('#start-btn').style.display = 'inline-block';
 
-        // Calculate XP (1 XP per 10 seconds survived, max 100)
-        const xp = Math.min(100, Math.floor(this.gameTime / 10));
+        // Calculate score based on time survived and score
+        const timeScore = Math.min(100, Math.floor(this.gameTime / 5));
+        const scoreBonus = Math.min(50, Math.floor(this.score / 20));
+        const totalScore = timeScore + scoreBonus;
 
-        // Save score
-        if (typeof saveScore === 'function') {
-            saveScore(this.score, xp);
+        // Save score to server
+        try {
+            const response = await fetch('/GameVerse/Hackathon-projekt/pages/games/save_score.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    game: 'dodge-squares',
+                    score: totalScore
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show XP earned notification
+                const xpNotification = document.createElement('div');
+                xpNotification.className = 'alert alert-success mt-3';
+                xpNotification.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="me-2">🎉</div>
+                        <div>
+                            <strong>+${result.xp_earned} XP Earned!</strong>
+                            <div class="small">Level ${result.level} (${result.new_xp % 100}/100 XP to next level)</div>
+                        </div>
+                    </div>
+                `;
+                this.gameOverEl.appendChild(xpNotification);
+                
+                // Update high score display if needed
+                if (result.new_high_score) {
+                    const highScoreNote = document.createElement('div');
+                    highScoreNote.className = 'alert alert-info mt-2';
+                    highScoreNote.innerHTML = '🏆 <strong>New High Score!</strong>';
+                    this.gameOverEl.insertBefore(highScoreNote, xpNotification);
+                }
+            }
+        } catch (error) {
+            console.error('Error saving score:', error);
+            // Still show the game over screen even if score save fails
         }
     }
 }

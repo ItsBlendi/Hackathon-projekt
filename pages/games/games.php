@@ -25,6 +25,13 @@ if (isset($_SESSION['house_id'])) {
 
 // Define the 4 shared games
 $allGames = [
+    'flappy-bird' => [
+        'title' => 'Flappy Bird',
+        'tagline' => 'Navigate the bird through the pipes!',
+        'difficulty' => 'Medium',
+        'icon' => '🐦',
+        'recommended_for' => ['All Players']
+    ],
     'reaction-rush' => [
         'title' => 'Reaction Rush',
         'tagline' => 'Test your reflexes! Click when the screen changes color.',
@@ -57,10 +64,10 @@ $allGames = [
 
 // Define house-specific game recommendations
 $houseGamesMap = [
-    1 => ['reaction-rush', 'memory-grid'],      // Hipsters
-    2 => ['reaction-rush', 'dodge-squares'],    // Speedsters
-    3 => ['number-ninja', 'memory-grid'],       // Engineers
-    4 => ['strategy-realms', 'puzzle-master']   // Shadows
+    1 => ['flappy-bird', 'reaction-rush', 'memory-grid'],      // Hipsters
+    2 => ['flappy-bird', 'number-ninja', 'dodge-squares'],    // Hustlers
+    3 => ['flappy-bird', 'memory-grid', 'reaction-rush'],     // Hypebeasts
+    4 => ['flappy-bird', 'dodge-squares', 'number-ninja']     // Hackers
 ];
 
 // Get featured games based on house or fallback
