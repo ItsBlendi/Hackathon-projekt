@@ -1,48 +1,49 @@
 <?php
-// Define project root path
-define('PROJECT_ROOT', __DIR__ . DIRECTORY_SEPARATOR);
-
-// Start the session
 session_start();
 
-// Include configuration
-require_once PROJECT_ROOT . 'config/database.php';
-
-// Set default page to home
+// Get the requested page
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
 
-// Define valid pages
-$valid_pages = [
-    'home' => PROJECT_ROOT . 'pages/home.php',
-    'about' => PROJECT_ROOT . 'pages/about.php',
-    'login' => PROJECT_ROOT . 'pages/auth/login.php',
-    'register' => PROJECT_ROOT . 'pages/auth/register.php',
-    'dashboard' => PROJECT_ROOT . 'pages/user/dashboard.php',
-    'houses' => PROJECT_ROOT . 'pages/houses/houses.php',
-    'games' => PROJECT_ROOT . 'pages/games/games.php',
-    'play' => PROJECT_ROOT . 'pages/games/play.php',
-    'leaderboard' => PROJECT_ROOT . 'pages/leaderboard.php',
-    'profile' => PROJECT_ROOT . 'pages/user/profile.php',
-    'forgot-password' => PROJECT_ROOT . 'pages/auth/password-reset.php',
-    'reset-password' => PROJECT_ROOT . 'pages/auth/password-reset.php'
+// Define the page routes and their corresponding files
+$routes = [
+    'home' => 'pages/home.php',
+    'login' => 'pages/auth/login.php',
+    'register' => 'pages/auth/register.php',
+    'logout' => 'pages/auth/logout.php',
+    'dashboard' => 'pages/dashboard.php',
+    'profile' => 'pages/profile.php',
+    'leaderboard' => 'pages/leaderboard.php',
+    'houses' => 'pages/houses/houses.php',
+    'games' => 'pages/games/games.php',
+    'play' => 'pages/games/play.php',
 ];
 
-// Get the requested page or default to home
-$page_file = isset($valid_pages[$page]) ? $valid_pages[$page] : PROJECT_ROOT . 'pages/404.php';
-
-// Include header
-include PROJECT_ROOT . 'templates/header.php';
-
-// Include the requested page
-if (file_exists($page_file)) {
-    include $page_file;
+// Check if the requested page exists in routes
+if (array_key_exists($page, $routes)) {
+    $file_path = $routes[$page];
+    
+    // Check if the file actually exists
+    if (file_exists($file_path)) {
+        include $file_path;
+    } else {
+        // File not found error
+        echo "<!DOCTYPE html>
+        <html lang='en'>
+        <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <title>Page Not Found</title>
+        </head>
+        <body>
+            <h1>Page Not Found</h1>
+            <p>The file <strong>$file_path</strong> could not be found.</p>
+            <a href='index.php?page=home'>Go to Home</a>
+        </body>
+        </html>";
+    }
 } else {
-    include PROJECT_ROOT . 'pages/404.php';
+    // Route not found, redirect to home
+    header('Location: index.php?page=home');
+    exit();
 }
-
-// Include footer
-include PROJECT_ROOT . 'templates/footer.php';
-
-// Close database connection
-$conn->close();
 ?>

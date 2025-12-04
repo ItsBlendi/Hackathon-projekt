@@ -121,6 +121,7 @@ $games = [
 ];
 
 $game = $games[$gameSlug] ?? null;
+$activeNav = 'games';
 ?>
 
 <!DOCTYPE html>
@@ -130,71 +131,192 @@ $game = $games[$gameSlug] ?? null;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($game ? $game['title'] . ' - GameVerse' : 'Game Not Found'); ?></title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0a0a1a;
+            color: #f0f0f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .main-navbar {
+            background: rgba(10, 10, 26, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00f3ff;
+            text-decoration: none;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            flex-wrap: wrap;
+        }
+
+        .navbar-links a {
+            color: #b8c2cc;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .navbar-links a:hover {
+            color: #00f3ff;
+        }
+
+        .navbar-links a.active {
+            color: #00f3ff;
+        }
+
+        .logout-btn {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
         .play-container {
             padding: 2rem;
             display: flex;
             justify-content: center;
-            min-height: 70vh;
+            min-height: calc(100vh - 80px);
+            position: relative;
         }
 
         .play-card {
-            max-width: 800px;
+            max-width: 900px;
             width: 100%;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 2rem;
+            border-radius: 16px;
+            padding: 2.5rem;
             border: 1px solid rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            height: fit-content;
         }
 
         .play-card h1 {
             color: #fff;
             margin-bottom: 0.5rem;
+            font-size: 2rem;
+            font-weight: 700;
         }
 
         .play-tagline {
-            color: #4cc9f0;
+            color: #00f3ff;
             margin-bottom: 1.5rem;
             font-weight: 500;
+            font-size: 1rem;
+            text-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
         }
 
         .play-meta {
             display: flex;
             flex-wrap: wrap;
-            gap: 1rem;
-            color: #d1d5db;
+            gap: 1.5rem;
+            color: #b8c2cc;
             font-size: 0.95rem;
             margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(0, 243, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 243, 255, 0.1);
+        }
+
+        .play-meta strong {
+            color: #00f3ff;
+            font-weight: 600;
+        }
+
+        .play-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #score-value,
+        #xp-value {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.1rem;
         }
 
         .play-actions {
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
-            margin-top: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         #game-root {
-            margin-top: 1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
             min-height: 400px;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .loading {
-            color: #9ca3af;
+            color: #00f3ff;
             font-size: 1.2rem;
             animation: pulse 1.5s infinite;
         }
 
         .error {
-            color: #ef4444;
+            color: #fca5a5;
             text-align: center;
-            padding: 1rem;
+            padding: 1.5rem;
             background: rgba(239, 68, 68, 0.1);
             border-radius: 8px;
             margin: 1rem 0;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .error p {
+            margin-bottom: 0.5rem;
         }
 
         @keyframes pulse {
@@ -202,8 +324,61 @@ $game = $games[$gameSlug] ?? null;
             50% { opacity: 1; }
             100% { opacity: 0.6; }
         }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 0.95rem;
+        }
+        
+        .btn-primary {
+            background-color: #00f3ff;
+            color: #0a0a1a;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background-color: #00d9e6;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-color: rgba(0, 243, 255, 0.5);
+            color: #00f3ff;
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
 
         @media (max-width: 768px) {
+            .navbar-container {
+                padding: 0 1rem;
+            }
+
+            .navbar-links {
+                gap: 1rem;
+                font-size: 0.9rem;
+            }
+
             .play-container {
                 padding: 1.5rem 1rem;
             }
@@ -211,41 +386,40 @@ $game = $games[$gameSlug] ?? null;
             .play-card {
                 padding: 1.5rem;
             }
-        }
-        
-        /* Button styles */
-        .btn {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            font-weight: 500;
-            text-align: center;
-            text-decoration: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-        }
-        
-        .btn-primary {
-            background-color: #4f46e5;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #4338ca;
-        }
-        
-        .btn-secondary {
-            background-color: #374151;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background-color: #1f2937;
+
+            .play-card h1 {
+                font-size: 1.5rem;
+            }
+
+            .play-meta {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .play-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
+    <nav class="main-navbar">
+        <div class="navbar-container">
+            <a href="index.php?page=dashboard" class="navbar-brand">🎮 GameVerse</a>
+            <ul class="navbar-links">
+                <li><a href="index.php?page=dashboard" class="<?= $activeNav === 'dashboard' ? 'active' : '' ?>">Dashboard</a></li>
+                <li><a href="index.php?page=games" class="<?= $activeNav === 'games' ? 'active' : '' ?>">Games</a></li>
+                <li><a href="index.php?page=leaderboard" class="<?= $activeNav === 'leaderboard' ? 'active' : '' ?>">Leaderboard</a></li>
+                <li><a href="index.php?page=profile" class="<?= $activeNav === 'profile' ? 'active' : '' ?>">My Account</a></li>
+                <li><a href="logout.php" class="logout-btn">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
     <div class="play-container">
         <?php if (!$game): ?>
             <div class="play-card">
@@ -287,7 +461,6 @@ $game = $games[$gameSlug] ?? null;
             return;
         }
 
-        // Show loading state
         root.innerHTML = '<div class="loading">Loading game, please wait...</div>';
 
         // Function to load script
@@ -301,48 +474,67 @@ $game = $games[$gameSlug] ?? null;
             });
         }
 
-        // Function to convert kebab-case to PascalCase
         function toPascalCase(str) {
             return str.split('-').map(word => 
                 word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
             ).join('');
         }
 
-        // Load required scripts
         async function loadGame() {
             try {
-                // Load game functions first
-                await loadScript('/GameVerse/Hackathon-projekt/pages/games/includes/game-functions.js');
+                const possiblePaths = [
+                    `games/${gameSlug}.js`,
+                    `pages/games/${gameSlug}.js`,
+                    `pages/games/games/${gameSlug}.js`,
+                ];
+
+                let scriptLoaded = false;
+                let lastError = null;
+
+                for (const path of possiblePaths) {
+                    try {
+                        await loadScript(path);
+                        scriptLoaded = true;
+                        break;
+                    } catch (err) {
+                        lastError = err;
+                        continue;
+                    }
+                }
+
+                if (!scriptLoaded) {
+                    throw lastError || new Error('Could not load game script from any path');
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 100));
                 
-                // Then load the specific game
-                await loadScript(`/GameVerse/Hackathon-projekt/pages/games/games/${gameSlug}.js`);
-                
-                // Get the game class name
                 const gameClassName = toPascalCase(gameSlug);
                 
-                // Check if the game class exists
-                if (window[gameClassName]) {
-                    // Create and initialize the game
-                    const gameInstance = new window[gameClassName](root);
-                    if (typeof gameInstance.init === 'function') {
-                        gameInstance.init();
-                    } else {
-                        throw new Error(`Game class ${gameClassName} is missing the init() method`);
-                    }
-                } else {
-                    throw new Error(`Game class ${gameClassName} not found`);
+                if (typeof window[gameClassName] !== 'function') {
+                    throw new Error(`Game class ${gameClassName} not found. Make sure the game file exports the class to window.`);
                 }
+                
+                root.innerHTML = '';
+                
+                const gameInstance = new window[gameClassName](root);
+                if (typeof gameInstance.init === 'function') {
+                    gameInstance.init();
+                }
+                
+                console.log(`Game ${gameClassName} loaded successfully!`);
             } catch (error) {
                 console.error('Game loading error:', error);
                 root.innerHTML = `
                     <div class="error">
                         <p>Failed to load the game. Please try again later.</p>
                         <p>Error: ${error.message}</p>
+                        <p style="margin-top: 1rem; font-size: 0.9rem;">
+                            Please make sure the game file (${gameSlug}.js) is in the correct location.
+                        </p>
                     </div>`;
             }
         }
 
-        // Start loading the game
         loadGame();
     });
     </script>

@@ -13,18 +13,32 @@ $user = requireLogin();
 $pageTitle = 'My Profile';
 $activeNav = 'profile';
 
-// Map house names
-$houseNameMap = [
-    'Gryffindor' => 'Hipsters',
-    'Slytherin' => 'Speedsters',
-    'Ravenclaw' => 'Engineers',
-    'Hufflepuff' => 'Shadows'
-];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_house'])) {
+    // Get random house
+    $housesQuery = "SELECT house_id FROM houses ORDER BY RAND() LIMIT 1";
+    $housesResult = $conn->query($housesQuery);
+    
+    if ($housesResult && $housesResult->num_rows > 0 && $randomHouse = $housesResult->fetch_assoc()) {
+        $updateStmt = $conn->prepare("UPDATE users SET house_id = ? WHERE user_id = ?");
+        $updateStmt->bind_param('ii', $randomHouse['house_id'], $user['user_id']);
+        
+        if ($updateStmt->execute()) {
+            $updateStmt->close();
+            // Reload user data to get the new house_id
+            $user['house_id'] = $randomHouse['house_id'];
+            // Redirect to refresh and show new house
+            header('Location: index.php?page=profile&assigned=1');
+            exit();
+        }
+        $updateStmt->close();
+    }
+}
 
 // Get user's house info
 $houseName = 'Unassigned';
 $houseColor = '#666666';
 $houseDescription = '';
+$hasHouse = false;
 
 if (!empty($user['house_id'])) {
     $stmt = $conn->prepare("SELECT name, color, description FROM houses WHERE house_id = ? LIMIT 1");
@@ -32,12 +46,14 @@ if (!empty($user['house_id'])) {
     $stmt->execute();
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
-        $houseName = isset($houseNameMap[$row['name']]) ? $houseNameMap[$row['name']] : $row['name'];
+        $houseName = $row['name'];
         $houseColor = $row['color'];
         $houseDescription = $row['description'];
+        $hasHouse = true;
     }
     $stmt->close();
 }
+
 
 // Get user rank
 $rankQuery = "SELECT COUNT(*) + 1 as rank FROM users WHERE xp > ?";
@@ -46,6 +62,7 @@ $rankStmt->bind_param('i', $user['xp']);
 $rankStmt->execute();
 $userRank = $rankStmt->get_result()->fetch_assoc()['rank'];
 $rankStmt->close();
+
 
 // Get user's game statistics
 $gamesQuery = "
@@ -67,6 +84,7 @@ $gamesStmt->execute();
 $gameStats = $gamesStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $gamesStmt->close();
 
+
 // Get user badges (achievements)
 $badgesQuery = "
     SELECT 
@@ -85,6 +103,7 @@ $badgesStmt->execute();
 $badges = $badgesStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $badgesStmt->close();
 
+
 // Calculate level
 $level = floor($user['xp'] / 100) + 1;
 $currentLevelXp = ($level - 1) * 100;
@@ -102,9 +121,22 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $pageTitle ?> - GameVerse</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Navigation bar styling to match leaderboard */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0a0a1a;
+            color: #f0f0f0;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+
+        /* Navigation bar */
         .main-navbar {
             background: rgba(10, 10, 26, 0.95);
             backdrop-filter: blur(10px);
@@ -122,6 +154,8 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .navbar-brand {
@@ -137,8 +171,7 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             gap: 2rem;
             align-items: center;
             list-style: none;
-            margin: 0;
-            padding: 0;
+            flex-wrap: wrap;
         }
 
         .navbar-links a {
@@ -168,22 +201,37 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
 
         .logout-btn:hover {
             background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
         }
 
-        body {
-            background-color: #0a0a1a;
-            color: #f0f0f0;
-            min-height: 100vh;
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+        /* Profile Container */
+        .profile-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
         }
 
-        /* Card styling matching dashboard */
+        .profile-header {
+            margin-bottom: 2rem;
+        }
+
+        .profile-header h1 {
+            font-size: 2.5rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-header p {
+            color: #b8c2cc;
+            font-size: 1.1rem;
+        }
+
+
+        /* Card styling */
         .card {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
-            padding: 1.5rem;
+            padding: 2rem;
             border: 1px solid rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(8px);
             transition: all 0.3s ease;
@@ -203,7 +251,8 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             gap: 0.5rem;
         }
 
-        /* Profile Grid Layout */
+
+        /* Profile Grid */
         .profile-grid {
             display: grid;
             grid-template-columns: 1fr 2fr;
@@ -211,7 +260,8 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             margin-bottom: 2rem;
         }
 
-        /* Profile Avatar Section */
+
+        /* Avatar */
         .avatar-large {
             width: 150px;
             height: 150px;
@@ -243,7 +293,8 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             margin-bottom: 1rem;
         }
 
-        /* House badge */
+
+        /* House Badge */
         .house-badge {
             display: inline-flex;
             align-items: center;
@@ -257,8 +308,8 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             border: 2px solid rgba(255, 255, 255, 0.3);
             color: #fff;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            margin-bottom: 1rem;
         }
+
 
         /* Stats Grid */
         .stats-grid {
@@ -290,6 +341,7 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
 
         /* Level Progress */
         .level-section {
@@ -334,6 +386,67 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             transition: width 0.5s ease;
             box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
         }
+
+        /* Added house assignment styles */
+        .house-assignment {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .house-icon-large {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .assign-house-btn {
+            background: linear-gradient(135deg, #00f3ff, #bc13fe);
+            color: #fff;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(0, 243, 255, 0.3);
+        }
+
+        .assign-house-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 243, 255, 0.5);
+        }
+
+        .assign-house-btn:active {
+            transform: translateY(0);
+        }
+
+        .house-display {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .house-name-large {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .house-description {
+            color: #b8c2cc;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        .success-message {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
 
         /* Game Stats */
         .games-grid {
@@ -384,6 +497,7 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             color: #b8c2cc;
         }
 
+
         /* Badges */
         .badges-grid {
             display: grid;
@@ -409,7 +523,6 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
         .badge-icon {
             font-size: 3rem;
             margin-bottom: 0.5rem;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
         }
 
         .badge-name {
@@ -445,6 +558,7 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             color: #b8c2cc;
         }
 
+
         /* Responsive */
         @media (max-width: 968px) {
             .profile-grid {
@@ -453,6 +567,10 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
         }
 
         @media (max-width: 768px) {
+            .navbar-container {
+                padding: 0 1rem;
+            }
+
             .profile-container {
                 padding: 1rem;
             }
@@ -472,7 +590,6 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
     </style>
 </head>
 <body>
-    <!-- Added navigation bar to profile page -->
     <nav class="main-navbar">
         <div class="navbar-container">
             <a href="index.php?page=dashboard" class="navbar-brand">🎮 GameVerse</a>
@@ -492,8 +609,14 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             <p>View your stats, achievements, and progress</p>
         </div>
 
+        <?php if (isset($_GET['assigned'])): ?>
+        <div class="success-message">
+            Congratulations! You've been assigned to <?= htmlspecialchars($houseName) ?>!
+        </div>
+        <?php endif; ?>
+
         <div class="profile-grid">
-            <!-- Left Column - User Overview -->
+            <!-- Left Column -->
             <div>
                 <div class="card">
                     <div class="avatar-large">
@@ -502,11 +625,13 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
                     <div class="username"><?= htmlspecialchars($user['username']) ?></div>
                     <div class="user-title">Rank #<?= $userRank ?></div>
                     
+                    <?php if ($hasHouse): ?>
                     <div style="text-align: center; margin-bottom: 1.5rem;">
                         <span class="house-badge" style="background-color: <?= $houseColor ?>">
                             <?= htmlspecialchars($houseName) ?>
                         </span>
                     </div>
+                    <?php endif; ?>
 
                     <div class="stats-grid">
                         <div class="stat-item">
@@ -529,7 +654,7 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
                 </div>
             </div>
 
-            <!-- Right Column - Level Progress -->
+            <!-- Right Column -->
             <div>
                 <div class="card">
                     <h2>
@@ -550,28 +675,41 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
                     </div>
                 </div>
 
-                <!-- House Info -->
-                <?php if ($houseName !== 'Unassigned'): ?>
+                <!-- House Assignment/Display Section -->
                 <div class="card" style="margin-top: 1.5rem;">
                     <h2>
                         <span>🏠</span>
                         <span>Your House</span>
                     </h2>
-                    <div style="text-align: center;">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">🏠</div>
-                        <h3 style="color: <?= $houseColor ?>; margin-bottom: 1rem; font-size: 1.5rem;">
+                    
+                    <?php if (!$hasHouse): ?>
+                    <div class="house-assignment">
+                        <div class="house-icon-large">🏠</div>
+                        <h3 style="color: #fff; margin-bottom: 1rem;">Join a House!</h3>
+                        <p style="color: #b8c2cc; margin-bottom: 2rem; line-height: 1.6;">
+                            You haven't been assigned to a house yet. Click the button below to be randomly assigned to one of our four gaming houses: Hipsters, Speedsters, Engineers, or Shadows!
+                        </p>
+                        <form method="POST">
+                            <button type="submit" name="assign_house" class="assign-house-btn">
+                                Assign Me to a House
+                            </button>
+                        </form>
+                    </div>
+                    <?php else: ?>
+                    <div class="house-display">
+                        <div class="house-icon-large">🏠</div>
+                        <div class="house-name-large" style="color: <?= $houseColor ?>">
                             <?= htmlspecialchars($houseName) ?>
-                        </h3>
-                        <?php if ($houseDescription): ?>
-                        <p style="color: #b8c2cc; line-height: 1.6;">
+                        </div>
+                        <p class="house-description">
                             <?= htmlspecialchars($houseDescription) ?>
                         </p>
-                        <?php endif; ?>
                     </div>
+                    <?php endif; ?>
                 </div>
-                <?php endif; ?>
             </div>
         </div>
+
 
         <!-- Game Statistics -->
         <div class="card" style="margin-bottom: 2rem;">
@@ -604,6 +742,7 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             <?php endif; ?>
         </div>
 
+
         <!-- Badges & Achievements -->
         <div class="card">
             <h2>
@@ -631,9 +770,5 @@ $totalPlays = array_sum(array_column($gameStats, 'plays'));
             <?php endif; ?>
         </div>
     </div>
-
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

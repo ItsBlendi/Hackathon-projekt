@@ -4,8 +4,8 @@ class FlappyBird {
     this.container = container
     this.gameActive = false
     this.animationId = null
-    this.gravity = 0.4
-    this.jumpForce = -8
+    this.gravity = 0.05 // Reduced gravity from 0.15 to 0.05 for much slower falling
+    this.jumpForce = -2.5
     this.pipes = []
     this.pipeGap = 200
     this.pipeFrequency = 2000 // ms
@@ -517,6 +517,25 @@ class FlappyBird {
       console.error("Error saving score:", error)
       // Still show the game over screen even if score save fails
     }
+  }
+
+  render() {
+    if (!this.gameActive) return
+
+    this.birdEl.style.top = `${this.bird.y}px`
+
+    // Apply rotation based on velocity
+    const rotation = Math.min(Math.max(this.bird.velocity * 3, -30), 90)
+    this.birdEl.style.transform = `rotate(${rotation}deg)`
+
+    this.pipes.forEach((pipe) => {
+      const pipeEl = document.getElementById(
+        pipe.type === "score" ? `score-${pipe.id}` : `pipe-${pipe.id}-${pipe.type}`,
+      )
+      if (pipeEl) {
+        pipeEl.style.left = `${pipe.x}px`
+      }
+    })
   }
 }
 
